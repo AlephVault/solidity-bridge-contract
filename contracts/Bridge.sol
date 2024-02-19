@@ -156,6 +156,20 @@ contract Bridge is Ownable, IERC1155Receiver {
   }
 
   /**
+   * Stores a parcel for the given resource and from the given data.
+   */
+  function storeParcel(uint256 _id, uint256 _value, uint256 _amountPerUnit, bytes calldata _data) private {
+    // Require the parcel id to NOT be present.
+    bytes32 parcelId = abi.decode(_data, (bytes32));
+    require(!parcels[parcelId].created, "Bridge: parcel id already taken");
+    // Requires the amount to be divisible by the units, and get the amount of units.
+    require(_value % _amountPerUnit == 0, "Bridge: invalid amount");
+    uint256 units = _value / _amountPerUnit;
+    // Register the parcel.
+    parcels[parcelId] = BridgedResourceParcel(true, _id, units);
+  }
+
+  /**
    * Receives tokens. It gets the corresponding units, always checking
    * the amount is aligned to the amount per unit in the resource. In
    * the end, the user must ensure the in-game redemption of the parcel
@@ -171,15 +185,17 @@ contract Bridge is Ownable, IERC1155Receiver {
     // Requires the resource type to be defined.
     BridgedResourceType storage bridgedResourceType = bridgedResourceTypes[id];
     require(bridgedResourceType.active, "Bridge: resource not defined");
-    // Require the parcel id to NOT be present.
-    bytes32 parcelId = abi.decode(data, (bytes32));
-    require(!parcels[parcelId].created, "Bridge: parcel id already taken");
-    // Requires the amount to be divisible by the units, and get the amount of units.
-    uint256 amountPerUnit = bridgedResourceType.amountPerUnit;
-    require(value % amountPerUnit == 0, "Bridge: invalid amount");
-    uint256 units = value / amountPerUnit;
-    // Register the parcel.
-    parcels[parcelId] = BridgedResourceParcel(true, id, units);
+    if (from != address(0)) {
+      // This occurs when it is NOT a direct mint.
+      //
+      // NOTES: It is valid to have direct mints. When a mint is direct, then
+      // no parcel allocation will occur. For this to work, the corresponding
+      // contract must implement its own method(s) to mint tokens to fund a
+      // given Bridge.
+      //
+      // Registers the incoming parcel.
+      storeParcel(id, value, bridgedResourceType.amountPerUnit, data);
+    }
     return IERC1155_OK;
   }
 
