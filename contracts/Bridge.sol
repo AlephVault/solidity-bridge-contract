@@ -90,7 +90,7 @@ contract Bridge is Ownable {
     BridgedResourceType storage resourceType = bridgedResourceTypes[_id];
     require(resourceType.created, "Bridge: resource not defined");
     IERC1155(economy).safeTransferFrom(
-      address(this), _to, _id, _units * resourceType.amountPerUnit
+      address(this), _to, _id, _units * resourceType.amountPerUnit, ""
     );
   }
 
@@ -99,7 +99,7 @@ contract Bridge is Ownable {
    */
   function defineBridgedResourceType(uint256 _id, uint256 _amountPerUnit) external onlyOwner {
     require(!terminated, "Bridge: already terminated");
-    require(_amountPerUnit, "Bridge: cannot define resource with 0 units");
+    require(_amountPerUnit != 0, "Bridge: cannot define resource with 0 units");
     bridgedResourceTypes[_id] = BridgedResourceType(true, true, _amountPerUnit);
     emit BridgedResourceTypeDefined(_id, _amountPerUnit);
   }
