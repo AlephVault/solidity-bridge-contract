@@ -33,21 +33,25 @@ contract Bridge is Ownable, IERC1155Receiver {
   bytes32 public constant PARCEL_NONE = bytes32(uint256(int256(-1)));
 
   /**
+   * For when the resource type is only created (but was removed).
+   */
+  uint256 public constant CREATED = 1;
+
+  /**
+   * For when the resource type is created and active.
+   */
+  uint256 public constant ACTIVE = 3;
+
+  /**
    * The configuration for a bridged resource type.
    */
   struct BridgedResourceType {
-    /**
-     * Flag telling the entry exists. Always true for
-     * created records.
-     */
-    bool created;
-
     /**
      * Flag telling the entry is active. By default,
      * true on new entries. It can be deactivated or
      * activated at will.
      */
-    bool active;
+    uint256 status;
 
     /**
      * The amount of the resource for each unit. It is
@@ -131,7 +135,7 @@ contract Bridge is Ownable, IERC1155Receiver {
   function sendUnits(address _to, uint256 _id, uint256 _units) external onlyOwner {
     require(_units > 0, "Bridge: cannot send 0 units");
     BridgedResourceType storage resourceType = bridgedResourceTypes[_id];
-    require(resourceType.created, "Bridge: resource not defined");
+    require((resourceType.status & CREATED) != 0, "Bridge: resource not defined");
     IERC1155(economy).safeTransferFrom(address(this), _to, _id, _units * resourceType.amountPerUnit, "");
   }
 
@@ -158,8 +162,8 @@ contract Bridge is Ownable, IERC1155Receiver {
   function removeBridgedResourceType(uint256 _id) external onlyOwner {
     require(!terminated, "Bridge: already terminated");
     BridgedResourceType storage bridgedResourceType = bridgedResourceTypes[_id];
-    require(bridgedResourceType.created, "Bridge: resource not defined");
-    bridgedResourceType.active = false;
+    require((bridgedResourceType.status & CREATED) != 0, "Bridge: resource not defined");
+    bridgedResourceType.status = CREATED;
     emit BridgedResourceTypeRemoved(_id);
   }
 
@@ -179,7 +183,7 @@ contract Bridge is Ownable, IERC1155Receiver {
     require(!parcels[parcelId].created, "Bridge: parcel id already taken");
     // Require the resource to be defined.
     BridgedResourceType storage bridgedResourceType = bridgedResourceTypes[_id];
-    require(bridgedResourceType.active, "Bridge: resource not defined");
+    require(bridgedResourceType.status == ACTIVE, "Bridge: resource not defined");
     uint256 amountPerUnit = bridgedResourceType.amountPerUnit;
     // Requires the amount to be divisible by the units, and get the amount of units.
     require(_value % amountPerUnit == 0, "Bridge: invalid amount");
