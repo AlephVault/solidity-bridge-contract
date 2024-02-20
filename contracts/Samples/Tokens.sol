@@ -10,24 +10,12 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
  * beneficiary address.
  */
 contract Tokens is ERC1155 {
-    uint256 public constant TOKEN1 = 0x100000000;
-    uint256 public constant TOKEN2 = 0x100000001;
-    uint256 public constant TOKEN3 = 0x100000002;
-    uint256 public constant TOKEN4 = 0x100000003;
-    uint256 public constant TOKEN5 = 0x100000004;
     uint256 public constant AMOUNT = 0x200000000;
 
-    constructor(address beneficiary) ERC1155("about:blank") {
-        require(beneficiary != address(0), "Tokens: invalid beneficiary");
-        _mint(beneficiary, TOKEN1, AMOUNT, "");
-        _mint(beneficiary, TOKEN2, AMOUNT, "");
-        _mint(beneficiary, TOKEN3, AMOUNT, "");
-        _mint(beneficiary, TOKEN4, AMOUNT, "");
-        _mint(beneficiary, TOKEN5, AMOUNT, "");
-    }
+    constructor() ERC1155("about:blank") {}
 
     // Obviously, this method would NEVER exist in production!!!!!
-    function mint(address to, uint256 id, uint256 value) external {
-        _mint(to, id, value, "");
+    function mint(address to, uint256 id) external {
+        _mint(to, id, AMOUNT, "");
     }
 }
