@@ -128,13 +128,18 @@ contract Bridge is Ownable, IERC1155Receiver {
   /**
    * Sends an amount of units of certain tokens to a target address.
    */
-  function sendTokens(address _to, uint256 _id, uint256 _units) external onlyOwner {
+  function sendUnits(address _to, uint256 _id, uint256 _units) external onlyOwner {
     require(_units > 0, "Bridge: cannot send 0 units");
     BridgedResourceType storage resourceType = bridgedResourceTypes[_id];
     require(resourceType.created, "Bridge: resource not defined");
-    IERC1155(economy).safeTransferFrom(
-      address(this), _to, _id, _units * resourceType.amountPerUnit, ""
-    );
+    IERC1155(economy).safeTransferFrom(address(this), _to, _id, _units * resourceType.amountPerUnit, "");
+  }
+
+  /**
+   * Sends arbitrary tokens (ERC1155) from this bridge to an address.
+   */
+  function sendTokens(address _to, uint256 _id, uint256 _value, bytes memory _data) public onlyOwner {
+    IERC1155(economy).safeTransferFrom(address(this), _to, _id, _value, _data);
   }
 
   /**
