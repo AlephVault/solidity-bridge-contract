@@ -25,4 +25,9 @@ contract Tokens is ERC1155 {
         _mint(beneficiary, TOKEN4, AMOUNT, "");
         _mint(beneficiary, TOKEN5, AMOUNT, "");
     }
+
+    // Obviously, this method would NEVER exist in production!!!!!
+    function mint(address to, uint256 id, uint256 value) external {
+        _mint(to, id, value, "");
+    }
 }
