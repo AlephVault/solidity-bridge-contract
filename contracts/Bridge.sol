@@ -74,7 +74,11 @@ contract Bridge is Ownable, IERC1155Receiver {
     bool created;
 
     /**
-     * The ID of the mapped resource.
+     * The ID of the mapped resource parcel. This ID is
+     * a hash, and later in the game the user must give
+     * the actual value which, when hashed, it'd match
+     * this hash. This, so other eavesdropper programs
+     * don't side-run the same redemption easily.
      */
     uint256 id;
 
