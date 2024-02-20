@@ -26,6 +26,13 @@ contract Bridge is Ownable, IERC1155Receiver {
   bytes4 public constant IERC1155_OK = bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"));
 
   /**
+   * This constant must be used when sending funds to the game,
+   * but not wanting to redeem any parcel. This is done by the
+   * administrators and must be specified explicitly.
+   */
+  bytes32 public constant PARCEL_NONE = bytes32(uint256(int256(-1)));
+
+  /**
    * The configuration for a bridged resource type.
    */
   struct BridgedResourceType {
@@ -108,7 +115,7 @@ contract Bridge is Ownable, IERC1155Receiver {
   /**
    * The owner for this contract is the underlying game.
    */
-  constructor(address _game, address _economy) public Ownable(_game) {
+  constructor(address _game, address _economy) Ownable(_game) {
     require(_economy != address(0), "Bridge: the economy must not be null");
     require(_economy.supportsInterface(type(IERC1155).interfaceId));
     economy = _economy;
@@ -156,15 +163,18 @@ contract Bridge is Ownable, IERC1155Receiver {
   }
 
   /**
-   * Stores a parcel for the given resource and from the given data.
+   * Processes a parcel for the given resource and from the given data.
    */
-  function storeParcel(uint256 _id, uint256 _value, uint256 _amountPerUnit, bytes calldata _data) private {
+  function processParcel(uint256 _id, uint256 _value, bytes32 parcelId) private {
     // Require the parcel id to NOT be present.
-    bytes32 parcelId = abi.decode(_data, (bytes32));
     require(!parcels[parcelId].created, "Bridge: parcel id already taken");
+    // Require the resource to be defined.
+    BridgedResourceType storage bridgedResourceType = bridgedResourceTypes[_id];
+    require(bridgedResourceType.active, "Bridge: resource not defined");
+    uint256 amountPerUnit = bridgedResourceType.amountPerUnit;
     // Requires the amount to be divisible by the units, and get the amount of units.
-    require(_value % _amountPerUnit == 0, "Bridge: invalid amount");
-    uint256 units = _value / _amountPerUnit;
+    require(_value % amountPerUnit == 0, "Bridge: invalid amount");
+    uint256 units = _value / amountPerUnit;
     // Register the parcel.
     parcels[parcelId] = BridgedResourceParcel(true, _id, units);
   }
@@ -176,26 +186,23 @@ contract Bridge is Ownable, IERC1155Receiver {
    * by the id used here in the data (data==abi.encode(parcelId)).
    */
   function onERC1155Received(
-    address operator, address from, uint256 id, uint256 value, bytes calldata data
+    address, address from, uint256 id, uint256 value, bytes calldata data
   ) external returns (bytes4) {
     // Requires the game to be not terminated.
     require(!terminated, "Bridge: already terminated");
     // Requires the sender to be the ERC1155 contract.
     require(msg.sender == economy, "Bridge: invalid sender");
-    // Requires the resource type to be defined.
-    BridgedResourceType storage bridgedResourceType = bridgedResourceTypes[id];
-    require(bridgedResourceType.active, "Bridge: resource not defined");
-    if (from != address(0)) {
-      // This occurs when it is NOT a direct mint.
-      //
-      // NOTES: It is valid to have direct mints. When a mint is direct, then
-      // no parcel allocation will occur. For this to work, the corresponding
-      // contract must implement its own method(s) to mint tokens to fund a
-      // given Bridge.
-      //
-      // Registers the incoming parcel.
-      storeParcel(id, value, bridgedResourceType.amountPerUnit, data);
-    }
+    // Minting is unrestricted.
+    if (from != address(0)) return IERC1155_OK;
+    // Otherwise, the parcel id will be retrieved. If it is PARCEL_NONE,
+    // this transfer will be unrestricted.
+    bytes32 parcelId = abi.decode(data, (bytes32));
+    if (parcelId == PARCEL_NONE) return IERC1155_OK;
+
+    // Now, the parcel will be processed.
+    processParcel(id, value, parcelId);
+
+    // Return properly.
     return IERC1155_OK;
   }
 
@@ -203,11 +210,7 @@ contract Bridge is Ownable, IERC1155Receiver {
    * Ensures the batch transfer is not allowed.
    */
   function onERC1155BatchReceived(
-    address operator,
-    address from,
-    uint256[] calldata ids,
-    uint256[] calldata values,
-    bytes calldata data
+    address, address, uint256[] calldata, uint256[] calldata, bytes calldata
   ) external returns (bytes4) {
     revert("Bridge: batch transfer is not allowed");
   }
