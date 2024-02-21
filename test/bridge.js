@@ -20,6 +20,8 @@ contract("Bridge", function (accounts) {
   const TOKEN6 = new BN("0x100000004");
   const UNITS1 = new BN("0x10000");
   const UNITS1b = new BN("0x20000");
+  const CREATED = new BN(1);
+  const ACTIVE = new BN(3);
   // const FULL_AMOUNT = new BN("0x20000");
 
   async function _makeContracts() {
@@ -64,23 +66,86 @@ contract("Bridge", function (accounts) {
     return bridge.terminate({from: from || accounts[0]});
   }
 
+  async function _testSuccessfulDefine(token, units, again) {
+    if (!again) assert.isTrue((await _getType(token))["status"].cmp(ACTIVE) !== 0);
+    expectEvent(
+      await _defineType(token, units || UNITS1, accounts[0]),
+      "BridgedResourceTypeDefined", [token, units || UNITS1]
+    );
+    assert.isTrue((await _getType(token))["status"].cmp(ACTIVE) === 0);
+  }
+
+  async function _testSuccessfulRemove(token) {
+    assert.isTrue((await _getType(token))["status"].cmp(0) !== 0);
+    expectEvent(
+      await _removeType(token, accounts[0]),
+      "BridgedResourceTypeRemoved", [token]
+    );
+    assert.isTrue((await _getType(token))["status"].cmp(CREATED) === 0);
+  }
+
   // All the tests I'll do:
 
   // 1. Fails to define an item type TOKEN1 while not being owner.
+  it("must fail to define an item type TOKEN1 while not being owner", async function() {
+    // Unspecified because it works like shit for custom errors.
+    await expectRevert.unspecified(_defineType(TOKEN1, UNITS1, accounts[1]));
+  });
+
   // 2. Fails to define an item type TOKEN1 while being owner, but using an amount of 0.
+  it("must fail to define an item type TOKEN1 while being owner, but using an amount of 0", async function() {
+    await expectRevert(
+      _defineType(TOKEN1, 0, accounts[0]),
+      "Bridge: cannot define resource with 0 units"
+    );
+  })
+
   // 3. Succeeds defining an item.
+  it("must succeed defining an item type TOKEN1 while being owner and using a non-zero units", async function() {
+    await _testSuccessfulDefine(TOKEN1, new BN(1));
+  });
+
   // 4. Succeeds updating the item.
+  it("must succeed updating the item type TOKEN1, again, while being owner and using another units", async function(){
+    await _testSuccessfulDefine(TOKEN1, UNITS1, true);
+  });
+
   // 5. Fails to remove an item type TOKEN1 while not being owner.
+  it("must fail to remove an item type TOKEN1 while not being owner", async function() {
+    await expectRevert.unspecified(_removeType(TOKEN1, accounts[1]));
+  });
+
   // 6. Fails to remove a non-existing item type TOKEN2.
+  it("must fail to remove a non-existing item type TOKEN2", async function() {
+    await expectRevert(_removeType(TOKEN2, accounts[0]), "Bridge: resource not defined");
+  });
+
   // 7. Succeeds removing an item type TOKEN1.
+  it("must succeed removing an item type TOKEN1", async function() {
+    await _testSuccessfulRemove(TOKEN1);
+  });
+
   // 8. Succeeds defining a new item TOKEN2.
+  it("must succeed defining a new item type TOKEN2", async function() {
+    await _testSuccessfulDefine(TOKEN2);
+  });
+
   // 9. Succeeds defining the item type TOKEN1 again.
+  it("must succeed defining the item type TOKEN1 again", async function() {
+    await _testSuccessfulDefine(TOKEN1);
+  });
+
   // 10. Define item types TOKEN3, TOKEN4, TOKEN5.
-  // 11. Ensure TOKEN1, TOKEN2, TOKEN3, TOKEN4, TOKEN5 are defined and active.
-  // 12. Terminates!!!.
-  // 13. Fails to define an item type TOKEN6 while not being the owner.
-  // 14. Fails to define an item type TOKEN6 while being owner, because it is terminated.
-  // 15. Re-create the contracts with _makeContracts().
+  it("must succeed defining the item types TOKEN3, TOKEN4, TOKEN5", async function() {
+    await _testSuccessfulDefine(TOKEN3);
+    await _testSuccessfulDefine(TOKEN4);
+    await _testSuccessfulDefine(TOKEN5);
+  });
+
+  // 11. Terminates!!!.
+  // 12. Fails to define an item type TOKEN6 while not being the owner.
+  // 13. Fails to define an item type TOKEN6 while being owner, because it is terminated.
+  // 14. Re-create the contracts with _makeContracts().
 
   // The next tests can be done by ANYONE.
 
