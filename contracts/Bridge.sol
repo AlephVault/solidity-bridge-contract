@@ -152,7 +152,7 @@ contract Bridge is Ownable, IERC1155Receiver {
   function defineBridgedResourceType(uint256 _id, uint256 _amountPerUnit) external onlyOwner {
     require(!terminated, "Bridge: already terminated");
     require(_amountPerUnit != 0, "Bridge: cannot define resource with 0 units");
-    bridgedResourceTypes[_id] = BridgedResourceType(true, true, _amountPerUnit);
+    bridgedResourceTypes[_id] = BridgedResourceType(ACTIVE, _amountPerUnit);
     emit BridgedResourceTypeDefined(_id, _amountPerUnit);
   }
 
