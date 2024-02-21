@@ -135,17 +135,47 @@ contract("Bridge", function (accounts) {
     await _testSuccessfulDefine(TOKEN1);
   });
 
-  // 10. Define item types TOKEN3, TOKEN4, TOKEN5.
+  // 10. Defines item types TOKEN3, TOKEN4, TOKEN5.
   it("must succeed defining the item types TOKEN3, TOKEN4, TOKEN5", async function() {
     await _testSuccessfulDefine(TOKEN3);
     await _testSuccessfulDefine(TOKEN4);
     await _testSuccessfulDefine(TOKEN5);
   });
 
-  // 11. Terminates!!!.
-  // 12. Fails to define an item type TOKEN6 while not being the owner.
-  // 13. Fails to define an item type TOKEN6 while being owner, because it is terminated.
-  // 14. Re-create the contracts with _makeContracts().
+  // 11. Fails to terminate when the requester is not the owner.
+  it("must fail to terminate when not done by the owner", async function() {
+    await expectRevert.unspecified(_terminate(accounts[1]));
+  });
+
+  // 12. Succeeds terminating when the requester is the owner.
+  it("must succeed terminating when done by the owner", async function() {
+    await _terminate(accounts[0]);
+  });
+
+  // 13. Fails to define an item type TOKEN6 while not being the owner.
+  it("must fail to define an item type TOKEN6 while not being the owner", async function() {
+    await expectRevert.unspecified(_defineType(TOKEN6, UNITS1, accounts[1]));
+  })
+
+  // 14. Fails to define an item type TOKEN6 while being owner, because it is terminated.
+  it("must fail to define an item TOKEN6 while being the owner, because it is terminated", async function() {
+    await expectRevert(_defineType(TOKEN6, UNITS1, accounts[0]), "Bridge: already terminated");
+  });
+
+  // 15. Fails to remove an item type TOKEN5 while not being the owner.
+  it("must fail to remove an item type TOKEN5 while not being the owner", async function() {
+    await expectRevert.unspecified(_removeType(TOKEN5, accounts[1]));
+  });
+
+  // 16. Fails to remove an item type TOKEN5 while being owner, because it is terminated.
+  it("must fails to remove an item type TOKEN5 while being owner, because it is terminated", async function() {
+    await expectRevert(_removeType(TOKEN5, accounts[0]), "Bridge: already terminated");
+  });
+
+  // 15. Re-create the contracts with _makeContracts().
+  it("must re-create the contract successfully", async function() {
+    await _makeContracts();
+  });
 
   // The next tests can be done by ANYONE.
 
