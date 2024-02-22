@@ -179,9 +179,21 @@ contract("Bridge", function (accounts) {
 
   // The next tests can be done by ANYONE.
 
-  // 1. Mint: TOKEN1 to account 1, and also TOKEN1 to the bridge.
+  // 1. Mint: TOKEN1 to account 1.
+  it("minting some tokens of TOKEN1 to account 1, and also to the bridge", async function() {
+    await tokens.mint(accounts[1], TOKEN1, {from: accounts[0]});
+  });
+
   // 2. Succeeds minting TOKEN1 directly to the bridge (even when TOKEN1 is not defined there).
+  it("must succeed directly minting to the bridge", async function() {
+    await tokens.mint(bridge.address, TOKEN1, {from: accounts[0]});
+  });
+
   // 3. Fails to transfer TOKEN1 from account 1 to the bridge, since no data is sent.
+  it("must fail to transfer TOKEN1 from account 1 to the bridge, since no data is sent", async function() {
+    //
+  });
+
   // 4. Fails to transfer TOKEN1 from account 1 to the bridge, with shit data, since invalid bytes32 data is sent.
   // 5. Fails to transfer TOKEN1 from account 1 to the bridge, with good data, since TOKEN1 is not defined there.
   // 6. Register TOKEN1 item type.

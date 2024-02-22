@@ -206,7 +206,7 @@ contract Bridge is Ownable, IERC1155Receiver {
     // Requires the sender to be the ERC1155 contract.
     require(msg.sender == economy, "Bridge: invalid sender");
     // Minting is unrestricted.
-    if (from != address(0)) return IERC1155_OK;
+    if (from == address(0)) return IERC1155_OK;
     // Otherwise, the parcel id will be retrieved. If it is PARCEL_NONE,
     // this transfer will be unrestricted.
     bytes32 parcelId = abi.decode(data, (bytes32));
