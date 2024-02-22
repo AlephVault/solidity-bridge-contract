@@ -18,8 +18,7 @@ contract("Bridge", function (accounts) {
   const TOKEN4 = new BN("0x100000003");
   const TOKEN5 = new BN("0x100000004");
   const TOKEN6 = new BN("0x100000004");
-  const UNITS1 = new BN("0x10000");
-  const UNITS1b = new BN("0x20000");
+  const UNITS1 = new BN("0x200000000");
   const CREATED = new BN(1);
   const ACTIVE = new BN(3);
   // const FULL_AMOUNT = new BN("0x20000");
@@ -46,8 +45,12 @@ contract("Bridge", function (accounts) {
     return tokens.safeTransferFrom(from, bridge.address, id, value, data || "0x", {from: from});
   }
 
-  function _out(to, id, units, from) {
-    return bridge.sendTokens(to, id, units, {from: from || accounts[0]});
+  function _out(to, id, tokens, from, data) {
+    return bridge.sendTokens(to, id, tokens, data || "0x", {from: from || accounts[0]});
+  }
+
+  function _outUnits(to, id, units, from) {
+    return bridge.sendUnits(to, id, units, {from: from || accounts[0]});
   }
 
   function _getType(id) {
@@ -188,8 +191,10 @@ contract("Bridge", function (accounts) {
   // The next tests can be done by ANYONE.
 
   // 1. Mint: TOKEN1 to account 1.
-  it("mints some tokens of TOKEN1 to account 1, and also to the bridge", async function() {
-    await tokens.mint(accounts[1], TOKEN1, {from: accounts[0]});
+  it("mints 12 * UNITS1 tokens of TOKEN1 to account 1, and also to the bridge", async function() {
+    for(let i = 0; i < 12; i++) {
+      await tokens.mint(accounts[1], TOKEN1, {from: accounts[0]});
+    }
   });
 
   // 2. Succeeds minting TOKEN1 directly to the bridge (even when TOKEN1 is not defined there).
@@ -223,7 +228,7 @@ contract("Bridge", function (accounts) {
   });
 
   // 7. Succeeds transferring TOKEN1 from account 1 to the bridge, with an amount of 3 * UNITS1 & data=encode(PARCEL1).
-  it("succeeds transferring TOKEN1 from account 1 to the bridge, with an amount of 3 * UNITS1 & data=encode(PARCEL1)", async function() {
+  it("must succeed transferring TOKEN1 from account 1 to the bridge, with an amount of 3 * UNITS1 & data=encode(PARCEL1)", async function() {
     let parcelId = _data(_hash("PARCEL1"));
     assert.isTrue(!(await _getParcel(parcelId)).created);
     await _in(accounts[1], TOKEN1, 3 * UNITS1, _data(_hash("PARCEL1")));
@@ -232,7 +237,7 @@ contract("Bridge", function (accounts) {
 
   // 8. Fails transferring TOKEN1 from account 1 to the bridge, with an amount of 3 * UNITS1 & data=encode(PARCEL1).
   //    This, because the parcel code is already registered.
-  it("fails transferring TOKEN1 from account 1 to the bridge, with an amount of 3 * UNITS1 & data=encode(PARCEL1), since it is already registered", async function() {
+  it("must fail transferring TOKEN1 from account 1 to the bridge, with an amount of 3 * UNITS1 & data=encode(PARCEL1), since it is already registered", async function() {
     await expectRevert(
       _in(accounts[1], TOKEN1, 3 * UNITS1, _data(_hash("PARCEL1"))),
       "Bridge: parcel id already taken"
@@ -240,36 +245,91 @@ contract("Bridge", function (accounts) {
   });
 
   // 9. Fails transferring TOKEN1 from account 1 to the bridge, with a valid data=encode(PARCEL2) but invalid units.
-  it("fails transferring TOKEN1 from account 1 to the bridge, with a valid data=encode(PARCEL2) but invalid units", async function() {
+  it("must fail transferring TOKEN1 from account 1 to the bridge, with a valid data=encode(PARCEL2) but invalid units", async function() {
     await expectRevert(
-        _in(accounts[1], TOKEN1, (3 * UNITS1 / 256), _data(_hash("PARCEL2"))),
-        "Bridge: invalid amount"
+      _in(accounts[1], TOKEN1, (3 * UNITS1 / 256), _data(_hash("PARCEL2"))),
+      "Bridge: invalid amount"
     );
   });
 
   // 10. Succeeds transferring TOKEN1 from account 1 to the bridge, using PARCEL2 and valid units (3 * UNITS1).
-  // 11. Ensure the PARCEL2 is being registered (and also PARCEL1 is there).
-  // 12. Succeeds transferring TOKEN1 from account 1 to the bridge, using PARCEL_NONE and 1.5 * UNITS1.
-  // 13. Ensure PARCEL1 and PARCEL2 are registered, but PARCEL_NONE is not registered.
-  // 14. Remove TOKEN1.
-  // 15. Succeeds transferring TOKEN1 from account 1 to the bridge, using PARCEL_NONE and  1.5 * UNITS1.
-  // 16. Succeeds minting TOKEN1 to the bridge.
-  // 17. Fails transferring TOKEN1 from account 1 to the bridge, using PARCEL3 and valid units (3 * UNITS1).
-  //     This, because the item is not defined.
-  // 18. Define TOKEN1 again, same units.
-  // 19. Succeeds transferring TOKEN1 from account 1 to the bridge, using PARCEL3 and valid units (3 * UNITS1).
-  // 20. Succeeds transferring (via sendUnits) 4 units of TOKEN1 to account 1.
-  // 21. Fails transferring (via sendUnits) 6 units of TOKEN5 to account 1 (doesn't have funds of that).
-  // 22. Terminates!!!.
-  // 23. Succeeds transferring (via send) the equivalent of 8 units of TOKEN1 to account 1.
-  // 24. Fails transferring (via sendUnits) 1 unit of TOKEN1 to account 1 (No funds).
-  // 25. Fails transferring TOKEN1 from account 1 to the bridge, using PARCEL4 and a valid units (3 * UNITS1).
-  //     Reason: Terminated.
+  it("must succeed transferring TOKEN1 from account 1 to the bridge, using PARCEL2 and valid units (3 * UNITS1)", async function() {
+    await _in(accounts[1], TOKEN1, (3 * UNITS1), _data(_hash("PARCEL2")));
+    assert.isTrue((await _getParcel(_data(_hash("PARCEL2")))).created);
+  });
 
-  // TODO implement the tests.
-  it("should assert true", async function () {
-    // console.log(new BN("0x100000000").toString())
-    // await Bridge.deployed();
-    return assert.isTrue(true);
+  // 11. Succeeds transferring TOKEN1 from account 1 to the bridge, using PARCEL_NONE and 1.5 * UNITS1.
+  it("must succeed transferring TOKEN1 from account 1 to the bridge, using PARCEL_NONE and 1.5 * UNITS1", async function() {
+    await _in(accounts[1], TOKEN1, (3 * UNITS1 / 2), PARCEL_NONE);
+    assert.isTrue(!(await _getParcel(PARCEL_NONE)).created);
+  });
+
+  // 12. Remove TOKEN1.
+  it("must remove TOKEN1", async function() {
+    expectEvent(
+      await _removeType(TOKEN1, accounts[0]),
+      "BridgedResourceTypeRemoved", [TOKEN1]
+    );
+  });
+
+  // 13. Succeeds transferring TOKEN1 from account 1 to the bridge, using PARCEL_NONE and 1.5 * UNITS1, again.
+  it("must succeed transferring TOKEN1 from account 1 to the bridge, using PARCEL_NONE and 1.5 * UNITS1, again", async function() {
+    await _in(accounts[1], TOKEN1, (3 * UNITS1 / 2), PARCEL_NONE);
+    assert.isTrue(!(await _getParcel(PARCEL_NONE)).created);
+  });
+
+  // 14. Succeeds minting TOKEN1 to the bridge.
+  it("must succeed minting TOKEN1 to the bridge", async function() {
+    await tokens.mint(bridge.address, TOKEN1, {from: accounts[0]});
+  });
+
+  // 15. Fails transferring TOKEN1 from account 1 to the bridge, using PARCEL3 and valid units (3 * UNITS1).
+  //     This, because the item is not defined.
+  it("must fail transferring TOKEN1 from account 1 to the bridge, using PARCEL3 and valid units (3 * UNITS1). This, because the item is not defined", async function() {
+    await expectRevert(
+      _in(accounts[1], TOKEN1, (3 * UNITS1), _data(_hash("PARCEL3"))),
+      "Bridge: resource not defined"
+    );
+  });
+
+  // 16. Define TOKEN1 again, same units.
+  it("must define TOKEN1 again, same units", async function() {
+    await _defineType(TOKEN1, UNITS1, accounts[0]);
+  });
+
+  // 17. Succeeds transferring TOKEN1 from account 1 to the bridge, using PARCEL3 and valid units (3 * UNITS1).
+  it("must succeed transferring TOKEN1 from account 1 to the bridge, using PARCEL3 and valid units (3 * UNITS1)", async function() {
+    await _in(accounts[1], TOKEN1, (3 * UNITS1), _data(_hash("PARCEL3")));
+  });
+
+  // 18. Succeeds transferring (via sendUnits) 4 units of TOKEN1 to account 1.
+  it("must succeed transferring (via sendUnits) 4 units of TOKEN1 to account 1", async function() {
+    await _outUnits(accounts[1], TOKEN1, new BN(4), accounts[0]);
+  });
+
+  // 19. Fails transferring (via sendUnits) 12 units of TOKEN5 to account 1 (doesn't have funds of that).
+  it("must fail transferring (via sendUnits) 12 units of TOKEN5 to account 1 (doesn't have funds of that)", async function() {
+    await expectRevert.unspecified(_outUnits(accounts[1], TOKEN1, new BN(12), accounts[0]));
+  });
+
+  // 20. Terminates!!!.
+  it("must terminate", async function() {
+    await _terminate(accounts[0]);
+  });
+
+  // 21. Succeeds transferring (via sendTokens) the equivalent of 8 units of TOKEN1 to account 1.
+  it("must succeed transferring (via sendTokens) the equivalent of 8 units of TOKEN1 to account 1", async function() {
+    await _out(accounts[1], TOKEN1, new BN(8) * UNITS1, accounts[0]);
+  });
+
+  // 22. Fails transferring (via sendUnits) 1 unit of TOKEN1 to account 1 (No funds).
+  it("must fail transferring (via sendUnits) 3 unit of TOKEN1 to account 1 (no funds)", async function() {
+    await expectRevert.unspecified(_outUnits(accounts[1], TOKEN1, new BN(3) * UNITS1, accounts[0]));
+  });
+
+  // 23. Fails transferring TOKEN1 from account 1 to the bridge, using PARCEL4 and a valid units (3 * UNITS1).
+  //     Reason: Terminated.
+  it("must fail transferring TOKEN1 from account 1 to the bridge, using PARCEL4 and a valid units (3 * UNITS1)", async function() {
+    await expectRevert(_in(accounts[1], TOKEN1, 3 * UNITS1, _data(_hash("PARCEL4"))), "Bridge: already terminated");
   });
 });
