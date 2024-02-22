@@ -239,25 +239,31 @@ contract("Bridge", function (accounts) {
     );
   });
 
-  // 10. Ensures the PARCEL1 is being registered.
-  // 11. Fails transferring TOKEN1 from account 1 to the bridge, with a valid data=encode(PARCEL2) but invalid units.
-  // 12. Succeeds transferring TOKEN1 from account 1 to the bridge, using PARCEL2 and valid units (3 * UNITS1).
-  // 13. Ensure the PARCEL2 is being registered (and also PARCEL1 is there).
-  // 14. Succeeds transferring TOKEN1 from account 1 to the bridge, using PARCEL_NONE and 1.5 * UNITS1.
-  // 15. Ensure PARCEL1 and PARCEL2 are registered, but PARCEL_NONE is not registered.
-  // 16. Remove TOKEN1.
-  // 17. Succeeds transferring TOKEN1 from account 1 to the bridge, using PARCEL_NONE and  1.5 * UNITS1.
-  // 18. Succeeds minting TOKEN1 to the bridge.
-  // 19. Fails transferring TOKEN1 from account 1 to the bridge, using PARCEL3 and valid units (3 * UNITS1).
+  // 9. Fails transferring TOKEN1 from account 1 to the bridge, with a valid data=encode(PARCEL2) but invalid units.
+  it("fails transferring TOKEN1 from account 1 to the bridge, with a valid data=encode(PARCEL2) but invalid units", async function() {
+    await expectRevert(
+        _in(accounts[1], TOKEN1, (3 * UNITS1 / 256), _data(_hash("PARCEL2"))),
+        "Bridge: invalid amount"
+    );
+  });
+
+  // 10. Succeeds transferring TOKEN1 from account 1 to the bridge, using PARCEL2 and valid units (3 * UNITS1).
+  // 11. Ensure the PARCEL2 is being registered (and also PARCEL1 is there).
+  // 12. Succeeds transferring TOKEN1 from account 1 to the bridge, using PARCEL_NONE and 1.5 * UNITS1.
+  // 13. Ensure PARCEL1 and PARCEL2 are registered, but PARCEL_NONE is not registered.
+  // 14. Remove TOKEN1.
+  // 15. Succeeds transferring TOKEN1 from account 1 to the bridge, using PARCEL_NONE and  1.5 * UNITS1.
+  // 16. Succeeds minting TOKEN1 to the bridge.
+  // 17. Fails transferring TOKEN1 from account 1 to the bridge, using PARCEL3 and valid units (3 * UNITS1).
   //     This, because the item is not defined.
-  // 20. Define TOKEN1 again, same units.
-  // 21. Succeeds transferring TOKEN1 from account 1 to the bridge, using PARCEL3 and valid units (3 * UNITS1).
-  // 22. Succeeds transferring (via sendUnits) 4 units of TOKEN1 to account 1.
-  // 23. Fails transferring (via sendUnits) 6 units of TOKEN5 to account 1 (doesn't have funds of that).
-  // 24. Terminates!!!.
-  // 25. Succeeds transferring (via send) the equivalent of 8 units of TOKEN1 to account 1.
-  // 26. Fails transferring (via sendUnits) 1 unit of TOKEN1 to account 1 (No funds).
-  // 27. Fails transferring TOKEN1 from account 1 to the bridge, using PARCEL4 and a valid units (3 * UNITS1).
+  // 18. Define TOKEN1 again, same units.
+  // 19. Succeeds transferring TOKEN1 from account 1 to the bridge, using PARCEL3 and valid units (3 * UNITS1).
+  // 20. Succeeds transferring (via sendUnits) 4 units of TOKEN1 to account 1.
+  // 21. Fails transferring (via sendUnits) 6 units of TOKEN5 to account 1 (doesn't have funds of that).
+  // 22. Terminates!!!.
+  // 23. Succeeds transferring (via send) the equivalent of 8 units of TOKEN1 to account 1.
+  // 24. Fails transferring (via sendUnits) 1 unit of TOKEN1 to account 1 (No funds).
+  // 25. Fails transferring TOKEN1 from account 1 to the bridge, using PARCEL4 and a valid units (3 * UNITS1).
   //     Reason: Terminated.
 
   // TODO implement the tests.
