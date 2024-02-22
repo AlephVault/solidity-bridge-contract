@@ -34,8 +34,16 @@ contract("Bridge", function (accounts) {
     await _makeContracts();
   });
 
-  function _in(from, to, id, value, data) {
-    return tokens.safeTransferFrom(from, to, id, value, data || "0x", {from: from});
+  function _hash(value) {
+    return web3.utils.soliditySha3(value);
+  }
+
+  function _data(hash) {
+    return web3.eth.abi.encodeParameters(["bytes32"], [hash]);
+  }
+
+  function _in(from, id, value, data) {
+    return tokens.safeTransferFrom(from, bridge.address, id, value, data || "0x", {from: from});
   }
 
   function _out(to, id, units, from) {
@@ -191,11 +199,24 @@ contract("Bridge", function (accounts) {
 
   // 3. Fails to transfer TOKEN1 from account 1 to the bridge, since no data is sent.
   it("must fail to transfer TOKEN1 from account 1 to the bridge, since no data is sent", async function() {
-    //
+    await expectRevert.unspecified(_in(accounts[1], TOKEN1, UNITS1));
   });
 
   // 4. Fails to transfer TOKEN1 from account 1 to the bridge, with shit data, since invalid bytes32 data is sent.
+  it("must fail to transfer TOKEN1 from account 1 to the bridge, with shit data, since invalid bytes32 data is sent", async function() {
+    await expectRevert.unspecified(
+      _in(accounts[1], TOKEN1, UNITS1, web3.eth.abi.encodeParameters(["string"], ["foo"]))
+    );
+  });
+
   // 5. Fails to transfer TOKEN1 from account 1 to the bridge, with good data, since TOKEN1 is not defined there.
+  it("must fail to transfer TOKEN1 from account 1 to the bridge, with good data, since TOKEN1 is not defined there", async function() {
+    await expectRevert(
+      _in(accounts[1], TOKEN1, UNITS1, _data(_hash("PARCEL1"))),
+      "Bridge: resource not defined"
+    );
+  });
+
   // 6. Register TOKEN1 item type.
   // 7. Define TOKEN1 with an amount of UNITS1.
   // 8. Succeeds transferring TOKEN1 from account 1 to the bridge, with an amount of 3 * UNITS1 & data=encode(PARCEL1).
