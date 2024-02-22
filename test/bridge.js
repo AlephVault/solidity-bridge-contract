@@ -188,7 +188,7 @@ contract("Bridge", function (accounts) {
   // The next tests can be done by ANYONE.
 
   // 1. Mint: TOKEN1 to account 1.
-  it("minting some tokens of TOKEN1 to account 1, and also to the bridge", async function() {
+  it("mints some tokens of TOKEN1 to account 1, and also to the bridge", async function() {
     await tokens.mint(accounts[1], TOKEN1, {from: accounts[0]});
   });
 
@@ -218,10 +218,27 @@ contract("Bridge", function (accounts) {
   });
 
   // 6. Register TOKEN1 item type.
-  // 7. Define TOKEN1 with an amount of UNITS1.
-  // 8. Succeeds transferring TOKEN1 from account 1 to the bridge, with an amount of 3 * UNITS1 & data=encode(PARCEL1).
-  // 9. Fails transferring TOKEN1 from account 1 to the bridge, with an amount of 3 * UNITS1 & data=encode(PARCEL1).
+  it("registers the TOKEN1 item type", async function() {
+    await _defineType(TOKEN1, UNITS1, accounts[0]);
+  });
+
+  // 7. Succeeds transferring TOKEN1 from account 1 to the bridge, with an amount of 3 * UNITS1 & data=encode(PARCEL1).
+  it("succeeds transferring TOKEN1 from account 1 to the bridge, with an amount of 3 * UNITS1 & data=encode(PARCEL1)", async function() {
+    let parcelId = _data(_hash("PARCEL1"));
+    assert.isTrue(!(await _getParcel(parcelId)).created);
+    await _in(accounts[1], TOKEN1, 3 * UNITS1, _data(_hash("PARCEL1")));
+    assert.isTrue((await _getParcel(parcelId)).created);
+  });
+
+  // 8. Fails transferring TOKEN1 from account 1 to the bridge, with an amount of 3 * UNITS1 & data=encode(PARCEL1).
   //    This, because the parcel code is already registered.
+  it("fails transferring TOKEN1 from account 1 to the bridge, with an amount of 3 * UNITS1 & data=encode(PARCEL1), since it is already registered", async function() {
+    await expectRevert(
+      _in(accounts[1], TOKEN1, 3 * UNITS1, _data(_hash("PARCEL1"))),
+      "Bridge: parcel id already taken"
+    );
+  });
+
   // 10. Ensures the PARCEL1 is being registered.
   // 11. Fails transferring TOKEN1 from account 1 to the bridge, with a valid data=encode(PARCEL2) but invalid units.
   // 12. Succeeds transferring TOKEN1 from account 1 to the bridge, using PARCEL2 and valid units (3 * UNITS1).
