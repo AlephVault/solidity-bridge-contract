@@ -1,0 +1,5 @@
+const Tokens = artifacts.require("Tokens")
+const Bridge = artifacts.require("Bridge")
+let tokens = await Tokens.new()
+let game = accounts[0]
+let bridge = await Bridge.new(game, tokens.address)
