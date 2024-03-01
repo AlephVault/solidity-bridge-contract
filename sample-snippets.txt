@@ -1,5 +1,10 @@
+# Run these lines while launching the console. Also, keep the
+# `token.address` and `bridge.address` values, or you'll need
+# to re-create the network and run these lines again.
 const Tokens = artifacts.require("Tokens")
 const Bridge = artifacts.require("Bridge")
 let tokens = await Tokens.new()
 let game = accounts[0]
 let bridge = await Bridge.new(game, tokens.address)
+console.log("Keep the address of the tokens contract: " + tokens.address);
+console.log("Keep the address of the bridge contract: " + bridge.address);
